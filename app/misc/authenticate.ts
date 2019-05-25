@@ -6,8 +6,8 @@ let $ = require("jquery");
 //import NodeGit, { Status } from "nodegit";
 
 let Git = require("nodegit");
+let electronOauth2 = require('electron-oauth2');
 let repo;
-
 let github = require("octonode");
 let repoName;
 let githubName;
@@ -24,6 +24,34 @@ let loginScopes = [
   "repo",
   "user"
 ];
+
+// Oath constants
+const windowParams = {
+  alwaysOnTop: true,
+  autoHideMenuBar: true,
+  webPreferences: {
+	  nodeIntegration: false,
+	  javascript: true,
+	  devTools: true,
+  },
+  darkTheme: true,
+};
+
+let OauthConfig = {
+  clientId: '7e4d055cfb9c017c6e1c',
+  clientSecret: 'e05c26a2d1e132c7922cae567946725cc74e6673',
+  authorizationUrl: 'http://github.com/login/oauth/authorize',
+  tokenUrl: 'https://github.com/login/oauth/access_token',
+  useBasicAuthorizationHeader: false,
+  redirectUri: 'http://localhost'
+}
+
+const options = {
+  scope: 'SCOPE',
+  accessType: 'ACCESS_TYPE'
+};
+
+const githubOAuth = electronOauth2(OauthConfig, windowParams);
 
 //Called then user pushes to sign out even if they have commited changes but not pushed; prompts a confirmation modal
 
@@ -105,8 +133,18 @@ function searchRepoName() {
   });
 }
 
-function getUserInfo(callback) {
+function authenticateUser(callback) {
+  // Code for signing in using auth0
+  githubOAuth.getAccessToken({})
+    .then(token => {
+      //event.sender.send('github-oauth-reply', token);
+      console.log('User AccessToken: ', token);
+    }, err => {
+      console.log('Error while getting token', err);
+	});
+}
 
+function getUserInfo(callback) {
   
   if (signedAfter === true){  // if the trys to login after clicking "continues without sign in" 
     encryptTemp(document.getElementById("Email1").value, document.getElementById("Password1").value);
@@ -121,8 +159,13 @@ function getUserInfo(callback) {
     username: getUsernameTemp(),
     password: getPasswordTemp()
   });
-  var ghme = client.me();
 
+  /*
+  client = github.client('accessToken');
+  */
+  
+  var ghme = client.me();
+	
   ghme.info(function(err, data, head) {
     if (err) {
       if (err.toString().indexOf("OTP") !== -1)
